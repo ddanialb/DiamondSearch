@@ -100,10 +100,23 @@ async function handleSearchCommand(interaction) {
     // Get the player ID from the command
     const playerId = interaction.options.getInteger("id");
 
+    // Log the search request
+    console.log(`🔍 Search Request:`);
+    console.log(`   User ID: ${interaction.user.id}`);
+    console.log(`   Username: ${interaction.user.username}`);
+    console.log(
+      `   Display Name: ${
+        interaction.user.displayName || interaction.user.username
+      }`
+    );
+    console.log(`   Searched Player ID: ${playerId}`);
+    console.log(`   Guild: ${interaction.guild?.name || "DM"}`);
+    console.log(`   Time: ${new Date().toLocaleString()}`);
+    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+
     // Reply immediately to prevent timeout
     await interaction.reply({
       content: "🔍 Searching for player...",
-      flags: 64, // Ephemeral flag
     });
 
     // Fetch data from API with timeout
@@ -127,7 +140,10 @@ async function handleSearchCommand(interaction) {
           iconURL: "https://cdn.discordapp.com/emojis/1234567890123456789.png",
         });
 
-      await interaction.followUp({ embeds: [noPlayersEmbed] });
+      await interaction.editReply({ embeds: [noPlayersEmbed] });
+
+      // Log server empty
+      console.log(`⚠️ Search Result: Server is empty (0 players online)`);
       return;
     }
 
@@ -149,7 +165,12 @@ async function handleSearchCommand(interaction) {
           iconURL: "https://cdn.discordapp.com/emojis/1234567890123456789.png",
         });
 
-      await interaction.followUp({ embeds: [notFoundEmbed] });
+      await interaction.editReply({ embeds: [notFoundEmbed] });
+
+      // Log player not found
+      console.log(
+        `❌ Search Result: Player ID '${playerId}' not found in server`
+      );
       return;
     }
 
@@ -216,7 +237,12 @@ async function handleSearchCommand(interaction) {
         iconURL: "https://cdn.discordapp.com/emojis/1234567890123456789.png",
       });
 
-    await interaction.followUp({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
+
+    // Log successful search result
+    console.log(
+      `✅ Search Result: Player '${name}' (ID: ${playerId}) found with ping ${ping}ms`
+    );
   } catch (error) {
     // Only log actual errors, not interaction timeouts
     if (
@@ -225,6 +251,13 @@ async function handleSearchCommand(interaction) {
     ) {
       console.error("Error in search command:", error);
     }
+
+    // Log API error
+    console.log(
+      `🚨 Search Error: API connection failed for Player ID '${interaction.options.getInteger(
+        "id"
+      )}'`
+    );
 
     const errorEmbed = new EmbedBuilder()
       .setTitle("Player Search Result")
@@ -243,14 +276,15 @@ async function handleSearchCommand(interaction) {
       });
 
     try {
-      await interaction.followUp({ embeds: [errorEmbed] });
-    } catch (replyError) {
+      // Try to edit the existing reply
+      await interaction.editReply({ embeds: [errorEmbed] });
+    } catch (editError) {
       // Don't log interaction timeout errors
       if (
-        !replyError.message.includes("Unknown interaction") &&
-        !replyError.message.includes("InteractionNotReplied")
+        !editError.message.includes("Unknown interaction") &&
+        !editError.message.includes("InteractionNotReplied")
       ) {
-        console.error("Failed to reply to interaction:", replyError);
+        console.error("Failed to edit interaction:", editError);
       }
     }
   }
