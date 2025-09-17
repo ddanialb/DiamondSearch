@@ -104,16 +104,22 @@ async function handleSearchCommand(interaction) {
     });
 
     // Fetch data from API with timeout
-    const response = await axios.get(API_URL, { timeout: 5000 });
+    const response = await axios.get(API_URL, { timeout: 20000 });
     const players = response.data;
 
     if (!players || players.length === 0) {
       const noPlayersEmbed = new EmbedBuilder()
-        .setTitle("🔍 Player Search Result")
-        .setDescription("No players currently online on DiamondRP server.")
-        .setColor(0x5865f2)
-        .setTimestamp()
-        .setFooter({ text: "Developed by AghaDaNi" });
+        .setTitle("Player Search Result")
+        .setDescription("```diff\n- Server Empty\n```")
+        .setColor(0xffaa00)
+        .addFields({
+          name: "Server Information",
+          value: `Server: \`Diamond RolePlay\`\nStatus: \`Empty\`\nPlayers: \`0\`\nLast Check: \`${new Date().toLocaleTimeString()}\``,
+          inline: false,
+        })
+        .setFooter({
+          text: "Developed by AghaDaNi",
+        });
 
       await interaction.followUp({ embeds: [noPlayersEmbed] });
       return;
@@ -124,24 +130,21 @@ async function handleSearchCommand(interaction) {
 
     if (!player) {
       const notFoundEmbed = new EmbedBuilder()
-        .setTitle("🔍 Player Search Result")
-        .setDescription(
-          `Player with ID \`${playerId}\` is not currently online on DiamondRP server.\n\n**Status:** Player is offline or not in server`
-        )
+        .setTitle("Player Search Result")
+        .setDescription("```diff\n- Offline\n```")
         .setColor(0xff0000)
-        .setTimestamp()
-        .setFooter({ text: "Developed by AghaDaNi" });
+        .addFields({
+          name: "Status",
+          value: `Player '${playerId}' Not in server or Server error`,
+          inline: false,
+        })
+        .setFooter({
+          text: "Developed by AghaDaNi",
+        });
 
       await interaction.followUp({ embeds: [notFoundEmbed] });
       return;
     }
-
-    // Create main embed
-    const embed = new EmbedBuilder()
-      .setTitle("🔍 Player Search Result")
-      .setColor(0x5865f2)
-      .setTimestamp()
-      .setFooter({ text: "Developed by AghaDaNi" });
 
     // Get player data
     const name = player.name || "Unknown";
@@ -169,67 +172,56 @@ async function handleSearchCommand(interaction) {
     let pingEmoji = "🔴";
     let pingColor = "Poor";
     let embedColor = 0xff0000; // Red for poor ping
+    let statusEmoji = "⚠️";
 
     if (ping < 50) {
       pingEmoji = "🟢";
       pingColor = "Excellent";
       embedColor = 0x00ff00; // Green for excellent ping
+      statusEmoji = "✨";
     } else if (ping < 100) {
       pingEmoji = "🟡";
       pingColor = "Good";
       embedColor = 0xffaa00; // Orange for good ping
+      statusEmoji = "👍";
     }
 
-    // Update embed color based on ping
-    embed.setColor(embedColor);
-
-    // Add status field
-    embed.addFields({
-      name: "📊 Status",
-      value: `**Server:** Diamond RolePlay\n**Status:** Online ✅\n**Total Players:** ${players.length}`,
-      inline: false,
-    });
-
-    // Add player information
-    embed.addFields({
-      name: "👤 Player Information",
-      value: `**Player ID:** \`${playerId}\`\n**Name:** \`${name}\`\n**Ping:** ${pingEmoji} \`${ping}ms\` (${pingColor})\n**Joined:** \`${timeAgo}\``,
-      inline: false,
-    });
-
-    // Add ping analysis
+    // Calculate ping statistics
     const allPings = players.map((p) => p.ping || 0);
     const avgPing = allPings.reduce((a, b) => a + b, 0) / allPings.length;
+    const minPing = Math.min(...allPings);
+    const maxPing = Math.max(...allPings);
 
-    let pingComparison = "";
-    if (ping < avgPing) {
-      pingComparison = `Better than average (${Math.round(avgPing)}ms)`;
-    } else if (ping > avgPing) {
-      pingComparison = `Worse than average (${Math.round(avgPing)}ms)`;
-    } else {
-      pingComparison = "Same as average";
-    }
-
-    embed.addFields({
-      name: "📈 Ping Analysis",
-      value: `**Your Ping:** \`${ping}ms\`\n**Server Average:** \`${Math.round(
-        avgPing
-      )}ms\`\n**Comparison:** ${pingComparison}`,
-      inline: true,
-    });
+    // Create simple embed like the example
+    const embed = new EmbedBuilder()
+      .setTitle("Player Search Result")
+      .setDescription("```diff\n+ Online\n```")
+      .setColor(0x00ff00)
+      .addFields({
+        name: "Player Information",
+        value: `Player ID: \`${playerId}\`\nName: \`${name}\`\nPing: \`${ping} ms\`\nPlaying On: \`Diamond RolePlay\`\nJoined At: \`${timeAgo}\``,
+        inline: false,
+      })
+      .setFooter({
+        text: "Developed by AghaDaNi",
+      });
 
     await interaction.followUp({ embeds: [embed] });
   } catch (error) {
     console.error("Error in search command:", error);
 
     const errorEmbed = new EmbedBuilder()
-      .setTitle("❌ Error")
-      .setDescription(
-        "An error occurred while fetching server data. Please try again later."
-      )
+      .setTitle("Player Search Result")
+      .setDescription("```diff\n- Error\n```")
       .setColor(0xff0000)
-      .setTimestamp()
-      .setFooter({ text: "Developed by AghaDaNi" });
+      .addFields({
+        name: "Error Information",
+        value: `Server: \`Diamond RolePlay\`\nStatus: \`Connection Error\`\nError: \`Failed to fetch data\`\nTime: \`${new Date().toLocaleTimeString()}\``,
+        inline: false,
+      })
+      .setFooter({
+        text: "Developed by AghaDaNi",
+      });
 
     try {
       await interaction.followUp({ embeds: [errorEmbed] });
