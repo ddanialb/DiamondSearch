@@ -114,11 +114,14 @@ async function handleSearchCommand(interaction) {
         .setColor(0xffaa00)
         .addFields({
           name: "Server Information",
-          value: `Server: \`Diamond RolePlay\`\nStatus: \`Empty\`\nPlayers: \`0\`\nLast Check: \`${new Date().toLocaleTimeString()}\``,
+          value: `• **Server:** \`Diamond RolePlay\`\n• **Status:** \`Empty\`\n• **Players:** \`0\`\n• **Last Check:** <t:${Math.floor(
+            Date.now() / 1000
+          )}:R>\n• **Error:** \`No players online\``,
           inline: false,
         })
         .setFooter({
           text: "Developed by AghaDaNi",
+          iconURL: "https://cdn.discordapp.com/emojis/1234567890123456789.png",
         });
 
       await interaction.followUp({ embeds: [noPlayersEmbed] });
@@ -134,12 +137,13 @@ async function handleSearchCommand(interaction) {
         .setDescription("```diff\n- Offline\n```")
         .setColor(0xff0000)
         .addFields({
-          name: "Status",
-          value: `Player '${playerId}' Not in server or Server error`,
+          name: "Player Information",
+          value: `• **Player ID:** \`${playerId}\`\n• **Name:** \`Not Found\`\n• **Status:** \`Offline\`\n• **Playing On:** \`Diamond RolePlay\`\n• **Error:** \`Player not in server or Server error\``,
           inline: false,
         })
         .setFooter({
           text: "Developed by AghaDaNi",
+          iconURL: "https://cdn.discordapp.com/emojis/1234567890123456789.png",
         });
 
       await interaction.followUp({ embeds: [notFoundEmbed] });
@@ -192,18 +196,21 @@ async function handleSearchCommand(interaction) {
     const minPing = Math.min(...allPings);
     const maxPing = Math.max(...allPings);
 
-    // Create simple embed like the example
+    // Create beautiful embed like the image
     const embed = new EmbedBuilder()
       .setTitle("Player Search Result")
-      .setDescription("```diff\n+ Online\n```")
+      .setDescription("```diff\n! Online\n```")
       .setColor(0x00ff00)
       .addFields({
         name: "Player Information",
-        value: `Player ID: \`${playerId}\`\nName: \`${name}\`\nPing: \`${ping} ms\`\nPlaying On: \`Diamond RolePlay\`\nJoined At: \`${timeAgo}\``,
+        value: `• **Player ID:** \`${playerId}\`\n• **Name:** \`${name}\`\n• **Ping:** \`${ping} ms\`\n• **Playing On:** \`Diamond RolePlay\`\n• **Joined At:** <t:${Math.floor(
+          joinedAt.getTime() / 1000
+        )}:R>`,
         inline: false,
       })
       .setFooter({
         text: "Developed by AghaDaNi",
+        iconURL: "https://cdn.discordapp.com/emojis/1234567890123456789.png",
       });
 
     await interaction.followUp({ embeds: [embed] });
@@ -213,14 +220,17 @@ async function handleSearchCommand(interaction) {
     const errorEmbed = new EmbedBuilder()
       .setTitle("Player Search Result")
       .setDescription("```diff\n- Error\n```")
-      .setColor(0xff0000)
+      .setColor(0xffaa00)
       .addFields({
         name: "Error Information",
-        value: `Server: \`Diamond RolePlay\`\nStatus: \`Connection Error\`\nError: \`Failed to fetch data\`\nTime: \`${new Date().toLocaleTimeString()}\``,
+        value: `• **Server:** \`Diamond RolePlay\`\n• **Status:** \`Connection Error\`\n• **Error:** \`Failed to fetch data\`\n• **Time:** <t:${Math.floor(
+          Date.now() / 1000
+        )}:R>\n• **Type:** \`API Error\``,
         inline: false,
       })
       .setFooter({
         text: "Developed by AghaDaNi",
+        iconURL: "https://cdn.discordapp.com/emojis/1234567890123456789.png",
       });
 
     try {
