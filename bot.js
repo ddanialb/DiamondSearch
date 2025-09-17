@@ -12,6 +12,9 @@ const {
 const axios = require("axios");
 const express = require("express");
 
+// Set axios timeout for faster responses
+axios.defaults.timeout = 1500;
+
 // Bot configuration from environment variables
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
@@ -100,11 +103,11 @@ async function handleSearchCommand(interaction) {
     // Reply immediately to prevent timeout
     await interaction.reply({
       content: "🔍 Searching for player...",
-      ephemeral: true,
+      flags: 64, // Ephemeral flag
     });
 
     // Fetch data from API with timeout
-    const response = await axios.get(API_URL, { timeout: 20000 });
+    const response = await axios.get(API_URL, { timeout: 1000 });
     const players = response.data;
 
     if (!players || players.length === 0) {
@@ -114,9 +117,9 @@ async function handleSearchCommand(interaction) {
         .setColor(0xffaa00)
         .addFields({
           name: "Server Information",
-          value: `• **Server:** \`Diamond RolePlay\`\n• **Status:** \`Empty\`\n• **Players:** \`0\`\n• **Last Check:** <t:${Math.floor(
+          value: `•  **Server:** \`Diamond RolePlay\`\n•  **Status:** \`Empty\`\n•  **Players:** \`0\`\n•  **Last Check:** <t:${Math.floor(
             Date.now() / 1000
-          )}:R>\n• **Error:** \`No players online\``,
+          )}:R>\n•  **Error:** \`No players online\``,
           inline: false,
         })
         .setFooter({
@@ -138,7 +141,7 @@ async function handleSearchCommand(interaction) {
         .setColor(0xff0000)
         .addFields({
           name: "Player Information",
-          value: `• **Player ID:** \`${playerId}\`\n• **Name:** \`Not Found\`\n• **Status:** \`Offline\`\n• **Playing On:** \`Diamond RolePlay\`\n• **Error:** \`Player not in server or Server error\``,
+          value: `•  **Player ID:** \`${playerId}\`\n•  **Name:** \`Not Found\`\n•  **Status:** \`Offline\`\n•  **Playing On:** \`Diamond RolePlay\`\n•  **Error:** \`Player not in server or Server error\``,
           inline: false,
         })
         .setFooter({
@@ -203,7 +206,7 @@ async function handleSearchCommand(interaction) {
       .setColor(0x00ff00)
       .addFields({
         name: "Player Information",
-        value: `• **Player ID:** \`${playerId}\`\n• **Name:** \`${name}\`\n• **Ping:** \`${ping} ms\`\n• **Playing On:** \`Diamond RolePlay\`\n• **Joined At:** <t:${Math.floor(
+        value: `•  **Player ID:** \`${playerId}\`\n•  **Name:** \`${name}\`\n•  **Ping:** \`${ping} ms\`\n•  **Playing On:** \`Diamond RolePlay\`\n•  **Joined At:** <t:${Math.floor(
           joinedAt.getTime() / 1000
         )}:R>`,
         inline: false,
@@ -215,7 +218,13 @@ async function handleSearchCommand(interaction) {
 
     await interaction.followUp({ embeds: [embed] });
   } catch (error) {
-    console.error("Error in search command:", error);
+    // Only log actual errors, not interaction timeouts
+    if (
+      !error.message.includes("Unknown interaction") &&
+      !error.message.includes("InteractionNotReplied")
+    ) {
+      console.error("Error in search command:", error);
+    }
 
     const errorEmbed = new EmbedBuilder()
       .setTitle("Player Search Result")
@@ -223,9 +232,9 @@ async function handleSearchCommand(interaction) {
       .setColor(0xffaa00)
       .addFields({
         name: "Error Information",
-        value: `• **Server:** \`Diamond RolePlay\`\n• **Status:** \`Connection Error\`\n• **Error:** \`Failed to fetch data\`\n• **Time:** <t:${Math.floor(
+        value: `•  **Server:** \`Diamond RolePlay\`\n•  **Status:** \`Connection Error\`\n•  **Error:** \`Failed to fetch data\`\n•  **Time:** <t:${Math.floor(
           Date.now() / 1000
-        )}:R>\n• **Type:** \`API Error\``,
+        )}:R>\n•  **Type:** \`API Error\``,
         inline: false,
       })
       .setFooter({
@@ -236,7 +245,13 @@ async function handleSearchCommand(interaction) {
     try {
       await interaction.followUp({ embeds: [errorEmbed] });
     } catch (replyError) {
-      console.error("Failed to reply to interaction:", replyError);
+      // Don't log interaction timeout errors
+      if (
+        !replyError.message.includes("Unknown interaction") &&
+        !replyError.message.includes("InteractionNotReplied")
+      ) {
+        console.error("Failed to reply to interaction:", replyError);
+      }
     }
   }
 }
