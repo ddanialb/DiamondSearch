@@ -10,6 +10,7 @@ const {
   Routes,
 } = require("discord.js");
 const axios = require("axios");
+const express = require("express");
 
 // Bot configuration from environment variables
 const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -30,6 +31,10 @@ if (!GUILD_ID) {
   process.exit(1);
 }
 const API_URL = "https://game-tools.ir/api/v1/servers/fivem/DiamondRP/players";
+
+// ==================== Express keep-alive server =====================
+const app = express();
+const port = process.env.PORT || 10000;
 
 // Create bot instance
 const client = new Client({
@@ -233,6 +238,15 @@ async function handleSearchCommand(interaction) {
     }
   }
 }
+
+// Express routes
+app.get("/", (req, res) => {
+  res.send("✅ DiamondRP Searcher Bot is running");
+});
+
+app.listen(port, "0.0.0.0", () => {
+  console.log(`🌐 Express server listening on 0.0.0.0:${port}`);
+});
 
 // Error handling
 client.on("error", (error) => {
