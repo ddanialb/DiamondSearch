@@ -96,23 +96,23 @@ client.on("interactionCreate", async (interaction) => {
 });
 
 async function handleSearchCommand(interaction) {
+  // Log the search request
+  console.log(`🔍 Search Request:`);
+  console.log(`   User ID: ${interaction.user.id}`);
+  console.log(`   Username: ${interaction.user.username}`);
+  console.log(
+    `   Display Name: ${
+      interaction.user.displayName || interaction.user.username
+    }`
+  );
+  console.log(`   Searched Player ID: ${interaction.options.getInteger("id")}`);
+  console.log(`   Guild: ${interaction.guild?.name || "DM"}`);
+  console.log(`   Time: ${new Date().toLocaleString()}`);
+  console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+
   try {
     // Get the player ID from the command
     const playerId = interaction.options.getInteger("id");
-
-    // Log the search request
-    console.log(`🔍 Search Request:`);
-    console.log(`   User ID: ${interaction.user.id}`);
-    console.log(`   Username: ${interaction.user.username}`);
-    console.log(
-      `   Display Name: ${
-        interaction.user.displayName || interaction.user.username
-      }`
-    );
-    console.log(`   Searched Player ID: ${playerId}`);
-    console.log(`   Guild: ${interaction.guild?.name || "DM"}`);
-    console.log(`   Time: ${new Date().toLocaleString()}`);
-    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
 
     // Reply immediately to prevent timeout
     await interaction.reply({
@@ -275,16 +275,18 @@ async function handleSearchCommand(interaction) {
         iconURL: "https://cdn.discordapp.com/emojis/1234567890123456789.png",
       });
 
+    // Try to respond with error embed
     try {
-      // Try to edit the existing reply
       await interaction.editReply({ embeds: [errorEmbed] });
     } catch (editError) {
-      // Don't log interaction timeout errors
-      if (
-        !editError.message.includes("Unknown interaction") &&
-        !editError.message.includes("InteractionNotReplied")
-      ) {
-        console.error("Failed to edit interaction:", editError);
+      // If edit fails, try to send a new message
+      try {
+        await interaction.followUp({ embeds: [errorEmbed] });
+      } catch (followUpError) {
+        // If both fail, just log it silently
+        console.log(
+          `⚠️ Could not send error response to user ${interaction.user.username}`
+        );
       }
     }
   }
