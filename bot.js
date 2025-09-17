@@ -13,7 +13,7 @@ const axios = require("axios");
 const express = require("express");
 
 // Set axios timeout for faster responses
-axios.defaults.timeout = 1500;
+axios.defaults.timeout = 5000;
 
 // Bot configuration from environment variables
 const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -120,7 +120,7 @@ async function handleSearchCommand(interaction) {
     });
 
     // Fetch data from API with timeout
-    const response = await axios.get(API_URL, { timeout: 1000 });
+    const response = await axios.get(API_URL, { timeout: 5000 });
     const players = response.data;
 
     if (!players || players.length === 0) {
@@ -244,19 +244,11 @@ async function handleSearchCommand(interaction) {
       `✅ Search Result: Player '${name}' (ID: ${playerId}) found with ping ${ping}ms`
     );
   } catch (error) {
-    // Only log actual errors, not interaction timeouts
-    if (
-      !error.message.includes("Unknown interaction") &&
-      !error.message.includes("InteractionNotReplied")
-    ) {
-      console.error("Error in search command:", error);
-    }
-
-    // Log API error
+    // Log API error silently
     console.log(
-      `🚨 Search Error: API connection failed for Player ID '${interaction.options.getInteger(
+      `⚠️ API timeout for Player ID '${interaction.options.getInteger(
         "id"
-      )}'`
+      )}' - User: ${interaction.user.username}`
     );
 
     const errorEmbed = new EmbedBuilder()
@@ -265,9 +257,9 @@ async function handleSearchCommand(interaction) {
       .setColor(0xffaa00)
       .addFields({
         name: "Error Information",
-        value: `•  **Server:** \`Diamond RolePlay\`\n•  **Status:** \`Connection Error\`\n•  **Error:** \`Failed to fetch data\`\n•  **Time:** <t:${Math.floor(
+        value: `•  **Server:** \`Diamond RolePlay\`\n•  **Status:** \`Connection Timeout\`\n•  **Error:** \`Server response too slow\`\n•  **Time:** <t:${Math.floor(
           Date.now() / 1000
-        )}:R>\n•  **Type:** \`API Error\``,
+        )}:R>\n•  **Type:** \`Timeout Error\``,
         inline: false,
       })
       .setFooter({
@@ -283,10 +275,7 @@ async function handleSearchCommand(interaction) {
       try {
         await interaction.followUp({ embeds: [errorEmbed] });
       } catch (followUpError) {
-        // If both fail, just log it silently
-        console.log(
-          `⚠️ Could not send error response to user ${interaction.user.username}`
-        );
+        // If both fail, just continue silently
       }
     }
   }
