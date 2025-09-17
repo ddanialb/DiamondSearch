@@ -15,6 +15,13 @@ const express = require("express");
 // Set axios timeout for faster responses
 axios.defaults.timeout = 10000;
 
+// Function to get Iran time
+function getIranTime() {
+  const now = new Date();
+  const iranTime = new Date(now.getTime() + 3.5 * 60 * 60 * 1000); // UTC+3:30
+  return iranTime;
+}
+
 // Bot configuration from environment variables
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
@@ -107,7 +114,7 @@ async function handleSearchCommand(interaction) {
   );
   console.log(`   Searched Player ID: ${interaction.options.getInteger("id")}`);
   console.log(`   Guild: ${interaction.guild?.name || "DM"}`);
-  console.log(`   Time: ${new Date().toLocaleString()}`);
+  console.log(`   Time: ${getIranTime().toLocaleString()}`);
   console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
 
   try {
@@ -137,9 +144,9 @@ async function handleSearchCommand(interaction) {
         .setColor(0xffaa00)
         .addFields({
           name: "Server Information",
-          value: `•  **Server:** \`Diamond RolePlay\`\n•  **Status:** \`Empty\`\n•  **Players:** \`0\`\n•  **Last Check:** <t:${Math.floor(
+          value: `- **Server:** \`Diamond RolePlay\`\n- **Status:** \`Empty\`\n- **Players:** \`0\`\n- **Last Check:** <t:${Math.floor(
             Date.now() / 1000
-          )}:R>\n•  **Error:** \`No players online\``,
+          )}:R>\n- **Error:** \`No players online\``,
           inline: false,
         })
         .setFooter({
@@ -164,7 +171,7 @@ async function handleSearchCommand(interaction) {
         .setColor(0xff0000)
         .addFields({
           name: "Player Information",
-          value: `•  **Player ID:** \`${playerId}\`\n•  **Name:** \`Not Found\`\n•  **Status:** \`Offline\`\n•  **Playing On:** \`Diamond RolePlay\`\n•  **Error:** \`Player not in server or Server error\``,
+          value: `- **Player ID:** \`${playerId}\`\n- **Name:** \`Not Found\`\n- **Status:** \`Offline\`\n- **Playing On:** \`Diamond RolePlay\`\n- **Error:** \`Player not in server or Server error\``,
           inline: false,
         })
         .setFooter({
@@ -234,7 +241,7 @@ async function handleSearchCommand(interaction) {
       .setColor(0x00ff00)
       .addFields({
         name: "Player Information",
-        value: `•  **Player ID:** \`${playerId}\`\n•  **Name:** \`${name}\`\n•  **Ping:** \`${ping} ms\`\n•  **Playing On:** \`Diamond RolePlay\`\n•  **Joined At:** <t:${Math.floor(
+        value: `- **Player ID:** \`${playerId}\`\n- **Name:** \`${name}\`\n- **Ping:** \`${ping} ms\`\n- **Playing On:** \`Diamond RolePlay\`\n- **Joined At:** <t:${Math.floor(
           joinedAt.getTime() / 1000
         )}:R>`,
         inline: false,
@@ -264,9 +271,9 @@ async function handleSearchCommand(interaction) {
       .setColor(0xffaa00)
       .addFields({
         name: "Error Information",
-        value: `•  **Server:** \`Diamond RolePlay\`\n•  **Status:** \`Connection Timeout\`\n•  **Error:** \`Server response too slow\`\n•  **Time:** <t:${Math.floor(
+        value: `- **Server:** \`Diamond RolePlay\`\n- **Status:** \`Connection Timeout\`\n- **Error:** \`Server response too slow\`\n- **Time:** <t:${Math.floor(
           Date.now() / 1000
-        )}:R>\n•  **Type:** \`Timeout Error\``,
+        )}:R>\n- **Type:** \`Timeout Error\``,
         inline: false,
       })
       .setFooter({
