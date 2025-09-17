@@ -13,7 +13,7 @@ const axios = require("axios");
 const express = require("express");
 
 // Set axios timeout for faster responses
-axios.defaults.timeout = 5000;
+axios.defaults.timeout = 10000;
 
 // Bot configuration from environment variables
 const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -119,8 +119,15 @@ async function handleSearchCommand(interaction) {
       content: "🔍 Searching for player...",
     });
 
-    // Fetch data from API with timeout
-    const response = await axios.get(API_URL, { timeout: 5000 });
+    // Fetch data from API with timeout and retry
+    let response;
+    try {
+      response = await axios.get(API_URL, { timeout: 10000 });
+    } catch (firstError) {
+      // Retry once if first attempt fails
+      console.log(`🔄 Retrying API call for Player ID '${playerId}'...`);
+      response = await axios.get(API_URL, { timeout: 15000 });
+    }
     const players = response.data;
 
     if (!players || players.length === 0) {
@@ -246,7 +253,7 @@ async function handleSearchCommand(interaction) {
   } catch (error) {
     // Log API error silently
     console.log(
-      `⚠️ API timeout for Player ID '${interaction.options.getInteger(
+      `⚠️ API failed after retry for Player ID '${interaction.options.getInteger(
         "id"
       )}' - User: ${interaction.user.username}`
     );
