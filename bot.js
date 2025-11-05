@@ -76,8 +76,20 @@ const hexCommand = new SlashCommandBuilder()
       .setRequired(true)
   );
 
+const onlyHexCommand = new SlashCommandBuilder()
+  .setName("onlyhex")
+  .setDescription("Search and display only unique Steam Hex identifiers")
+  .addStringOption((option) =>
+    option
+      .setName("identifier")
+      .setDescription(
+        "Enter Discord ID, Steam Hex, Username, License, License2, Live, XBL, or FiveM ID"
+      )
+      .setRequired(true)
+  );
+
 // Register slash commands
-const commands = [searchCommand, hexCommand];
+const commands = [searchCommand, hexCommand, onlyHexCommand];
 
 const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
 
@@ -115,6 +127,8 @@ client.on("interactionCreate", async (interaction) => {
     await handleSearchCommand(interaction);
   } else if (interaction.commandName === "hex") {
     await handleHexCommand(interaction);
+  } else if (interaction.commandName === "onlyhex") {
+    await handleOnlyHexCommand(interaction);
   }
 });
 
@@ -333,7 +347,7 @@ async function handleHexCommand(interaction) {
 
     // Reply immediately to prevent timeout
     await interaction.reply({
-      content: "🔍 جستجوی شناسه...",
+      content: "🔍 Searching for identifier...",
     });
 
     // Fetch data from player-finder API
@@ -359,12 +373,12 @@ async function handleHexCommand(interaction) {
 
     if (!data.accounts || data.accounts.length === 0) {
       const notFoundEmbed = new EmbedBuilder()
-        .setTitle("نتیجه جستجوی شناسه")
-        .setDescription("```diff\n- یافت نشد\n```")
+        .setTitle("Identifier Search Result")
+        .setDescription("```diff\n- Not Found\n```")
         .setColor(0xff0000)
         .addFields({
-          name: "اطلاعات",
-          value: `- **شناسه جستجو شده:** \`${identifier}\`\n- **وضعیت:** \`یافت نشد\`\n- **تعداد نتایج:** \`0\`\n- **خطا:** \`هیچ اکانتی با این شناسه پیدا نشد\``,
+          name: "Information",
+          value: `- **Searched Identifier:** \`${identifier}\`\n- **Status:** \`Not Found\`\n- **Total Results:** \`0\`\n- **Error:** \`No accounts found with this identifier\``,
           inline: false,
         })
         .setFooter({
@@ -379,113 +393,120 @@ async function handleHexCommand(interaction) {
       return;
     }
 
-    // Get the first account (most relevant)
-    const account = data.accounts[0];
+    // Create embeds for all accounts
+    const embeds = [];
 
-    // Build player information fields
-    let playerInfo = "";
+    for (let i = 0; i < data.accounts.length && i < 10; i++) {
+      const account = data.accounts[i];
+      let playerInfo = "";
 
-    // Name
-    if (account.name) {
-      playerInfo += `- **نام کاربری:** \`${account.name}\`\n`;
-    }
-
-    // Discord info
-    if (account.discord) {
-      if (account.discord.name) {
-        playerInfo += `- **نام کاربری دیسکورد:** \`${account.discord.name}\`\n`;
+      // Name
+      if (account.name) {
+        playerInfo += `- **Username:** \`${account.name}\`\n`;
       }
-      if (account.discord.displayName) {
-        playerInfo += `- **نام نمایشی دیسکورد:** \`${account.discord.displayName}\`\n`;
+
+      // Discord info
+      if (account.discord) {
+        if (account.discord.name) {
+          playerInfo += `- **Discord Username:** \`${account.discord.name}\`\n`;
+        }
+        if (account.discord.displayName) {
+          playerInfo += `- **Discord Display Name:** \`${account.discord.displayName}\`\n`;
+        }
+        if (account.discord.id) {
+          playerInfo += `- **Discord ID:** \`${account.discord.id}\`\n`;
+        }
       }
-      if (account.discord.id) {
-        playerInfo += `- **آی دی دیسکورد:** \`${account.discord.id}\`\n`;
+
+      // Steam info
+      if (account.steam) {
+        if (account.steam.hex) {
+          playerInfo += `- **Steam Hex:** \`${account.steam.hex}\`\n`;
+        }
+        if (account.steam.name) {
+          playerInfo += `- **Steam Username:** \`${account.steam.name}\`\n`;
+        }
+        if (account.steam.id) {
+          playerInfo += `- **Steam ID:** \`${account.steam.id}\`\n`;
+        }
+        if (account.steam.url) {
+          playerInfo += `- **Steam URL:** [Profile](${account.steam.url})\n`;
+        }
       }
-    }
 
-    // Steam info
-    if (account.steam) {
-      if (account.steam.hex) {
-        playerInfo += `- **Steam Hex:** \`${account.steam.hex}\`\n`;
+      // License
+      if (account.license) {
+        playerInfo += `- **License:** \`${account.license}\`\n`;
       }
-      if (account.steam.name) {
-        playerInfo += `- **نام کاربری Steam:** \`${account.steam.name}\`\n`;
+
+      // License2
+      if (account.license2) {
+        playerInfo += `- **License2:** \`${account.license2}\`\n`;
       }
-      if (account.steam.id) {
-        playerInfo += `- **Steam ID:** \`${account.steam.id}\`\n`;
+
+      // Live
+      if (account.live) {
+        playerInfo += `- **Live:** \`${account.live}\`\n`;
       }
-      if (account.steam.url) {
-        playerInfo += `- **Steam URL:** [پروفایل](${account.steam.url})\n`;
+
+      // XBL
+      if (account.xbl) {
+        playerInfo += `- **XBL:** \`${account.xbl}\`\n`;
       }
+
+      // FiveM
+      if (account.fivem) {
+        playerInfo += `- **FiveM:** \`${account.fivem}\`\n`;
+      }
+
+      // Add server play time info if available
+      if (account.playTimes && account.playTimes.length > 0) {
+        const playTime = account.playTimes[0];
+        const hours = Math.floor(playTime.playTime / 60);
+        const minutes = playTime.playTime % 60;
+        playerInfo += `\n**Server Information:**\n`;
+        playerInfo += `- **Server:** \`${playTime.server.name}\`\n`;
+        playerInfo += `- **Play Time:** \`${hours}h ${minutes}m\`\n`;
+      }
+
+      if (!playerInfo) {
+        playerInfo = "- **Error:** `No information found`";
+      }
+
+      const embed = new EmbedBuilder()
+        .setTitle(`Identifier Search Result - Account ${i + 1}/${data.count}`)
+        .setDescription("```diff\n+ Found\n```")
+        .setColor(0x00ff00)
+        .addFields({
+          name: "Player Information",
+          value: playerInfo,
+          inline: false,
+        })
+        .setFooter({
+          text: "Developed by AghaDaNi",
+          iconURL: "https://cdn.discordapp.com/emojis/1234567890123456789.png",
+        });
+
+      // Add avatar if available
+      if (account.discord && account.discord.avatar) {
+        embed.setThumbnail(account.discord.avatar);
+      } else if (account.steam && account.steam.avatar) {
+        embed.setThumbnail(account.steam.avatar);
+      }
+
+      embeds.push(embed);
     }
 
-    // License
-    if (account.license) {
-      playerInfo += `- **License:** \`${account.license}\`\n`;
+    // Send first embed as edit
+    await interaction.editReply({ embeds: [embeds[0]] });
+
+    // Send remaining embeds as follow-ups
+    for (let i = 1; i < embeds.length; i++) {
+      await interaction.followUp({ embeds: [embeds[i]] });
     }
-
-    // License2
-    if (account.license2) {
-      playerInfo += `- **License2:** \`${account.license2}\`\n`;
-    }
-
-    // Live
-    if (account.live) {
-      playerInfo += `- **Live:** \`${account.live}\`\n`;
-    }
-
-    // XBL
-    if (account.xbl) {
-      playerInfo += `- **XBL:** \`${account.xbl}\`\n`;
-    }
-
-    // FiveM
-    if (account.fivem) {
-      playerInfo += `- **FiveM:** \`${account.fivem}\`\n`;
-    }
-
-    // Add server play time info if available
-    if (account.playTimes && account.playTimes.length > 0) {
-      const playTime = account.playTimes[0];
-      const hours = Math.floor(playTime.playTime / 60);
-      const minutes = playTime.playTime % 60;
-      playerInfo += `\n**اطلاعات سرور:**\n`;
-      playerInfo += `- **سرور:** \`${playTime.server.name}\`\n`;
-      playerInfo += `- **زمان بازی:** \`${hours}h ${minutes}m\`\n`;
-    }
-
-    // Add total results count
-    playerInfo += `\n- **تعداد کل نتایج:** \`${data.count}\`\n`;
-
-    if (!playerInfo) {
-      playerInfo = "- **خطا:** `اطلاعاتی یافت نشد`";
-    }
-
-    const embed = new EmbedBuilder()
-      .setTitle("نتیجه جستجوی شناسه")
-      .setDescription("```diff\n+ یافت شد\n```")
-      .setColor(0x00ff00)
-      .addFields({
-        name: "اطلاعات بازیکن",
-        value: playerInfo,
-        inline: false,
-      })
-      .setFooter({
-        text: "Developed by AghaDaNi",
-        iconURL: "https://cdn.discordapp.com/emojis/1234567890123456789.png",
-      });
-
-    // Add avatar if available
-    if (account.discord && account.discord.avatar) {
-      embed.setThumbnail(account.discord.avatar);
-    } else if (account.steam && account.steam.avatar) {
-      embed.setThumbnail(account.steam.avatar);
-    }
-
-    await interaction.editReply({ embeds: [embed] });
 
     console.log(
-      `✅ Hex Search Result: Found account '${account.name}' for identifier '${identifier}'`
+      `✅ Hex Search Result: Found ${data.count} account(s) for identifier '${identifier}'`
     );
   } catch (error) {
     console.log(
@@ -496,14 +517,195 @@ async function handleHexCommand(interaction) {
     console.error("Error details:", error.message);
 
     const errorEmbed = new EmbedBuilder()
-      .setTitle("نتیجه جستجوی شناسه")
-      .setDescription("```diff\n- خطا\n```")
+      .setTitle("Identifier Search Result")
+      .setDescription("```diff\n- Error\n```")
       .setColor(0xffaa00)
       .addFields({
-        name: "اطلاعات خطا",
-        value: `- **وضعیت:** \`خطا در اتصال\`\n- **خطا:** \`سرور پاسخ نداد\`\n- **زمان:** <t:${Math.floor(
+        name: "Error Information",
+        value: `- **Status:** \`Connection Error\`\n- **Error:** \`Server did not respond\`\n- **Time:** <t:${Math.floor(
           Date.now() / 1000
-        )}:R>\n- **نوع:** \`Timeout Error\``,
+        )}:R>\n- **Type:** \`Timeout Error\``,
+        inline: false,
+      })
+      .setFooter({
+        text: "Developed by AghaDaNi",
+        iconURL: "https://cdn.discordapp.com/emojis/1234567890123456789.png",
+      });
+
+    try {
+      await interaction.editReply({ embeds: [errorEmbed] });
+    } catch (editError) {
+      try {
+        await interaction.followUp({ embeds: [errorEmbed] });
+      } catch (followUpError) {
+        // Silent fail
+      }
+    }
+  }
+}
+
+async function handleOnlyHexCommand(interaction) {
+  // Log the onlyhex search request
+  console.log(`🔍 OnlyHex Search Request:`);
+  console.log(`   User ID: ${interaction.user.id}`);
+  console.log(`   Username: ${interaction.user.username}`);
+  console.log(
+    `   Display Name: ${
+      interaction.user.displayName || interaction.user.username
+    }`
+  );
+  console.log(
+    `   Searched Identifier: ${interaction.options.getString("identifier")}`
+  );
+  console.log(`   Guild: ${interaction.guild?.name || "DM"}`);
+  console.log(`   Time: ${getIranTime().toLocaleString()}`);
+  console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+
+  try {
+    const identifier = interaction.options.getString("identifier");
+
+    // Reply immediately to prevent timeout
+    await interaction.reply({
+      content: "🔍 Searching for Steam Hex identifiers...",
+    });
+
+    // Fetch data from player-finder API
+    let response;
+    try {
+      response = await axios.get(
+        `https://game-tools.ir/api/player-finder?query=${encodeURIComponent(
+          identifier
+        )}&page=1&perPage=10`,
+        { timeout: 10000 }
+      );
+    } catch (firstError) {
+      console.log(`🔄 Retrying API call for identifier '${identifier}'...`);
+      response = await axios.get(
+        `https://game-tools.ir/api/player-finder?query=${encodeURIComponent(
+          identifier
+        )}&page=1&perPage=10`,
+        { timeout: 15000 }
+      );
+    }
+
+    const data = response.data;
+
+    if (!data.accounts || data.accounts.length === 0) {
+      const notFoundEmbed = new EmbedBuilder()
+        .setTitle("Steam Hex Search Result")
+        .setDescription("```diff\n- Not Found\n```")
+        .setColor(0xff0000)
+        .addFields({
+          name: "Information",
+          value: `- **Searched Identifier:** \`${identifier}\`\n- **Status:** \`Not Found\`\n- **Total Results:** \`0\`\n- **Error:** \`No accounts found with this identifier\``,
+          inline: false,
+        })
+        .setFooter({
+          text: "Developed by AghaDaNi",
+          iconURL: "https://cdn.discordapp.com/emojis/1234567890123456789.png",
+        });
+
+      await interaction.editReply({ embeds: [notFoundEmbed] });
+      console.log(
+        `❌ OnlyHex Search Result: No accounts found for '${identifier}'`
+      );
+      return;
+    }
+
+    // Collect unique Steam Hex identifiers
+    const uniqueHexes = new Set();
+    const hexData = [];
+
+    for (const account of data.accounts) {
+      if (account.steam && account.steam.hex) {
+        const hex = account.steam.hex;
+        if (!uniqueHexes.has(hex)) {
+          uniqueHexes.add(hex);
+          hexData.push({
+            hex: hex,
+            steamId: account.steam.id || "N/A",
+            steamName: account.steam.name || "N/A",
+            steamUrl: account.steam.url || null,
+            username: account.name || "N/A",
+          });
+        }
+      }
+    }
+
+    if (hexData.length === 0) {
+      const noHexEmbed = new EmbedBuilder()
+        .setTitle("Steam Hex Search Result")
+        .setDescription("```diff\n- No Steam Hex Found\n```")
+        .setColor(0xff0000)
+        .addFields({
+          name: "Information",
+          value: `- **Searched Identifier:** \`${identifier}\`\n- **Total Accounts:** \`${data.count}\`\n- **Steam Hex Found:** \`0\`\n- **Error:** \`No Steam Hex identifiers in accounts\``,
+          inline: false,
+        })
+        .setFooter({
+          text: "Developed by AghaDaNi",
+          iconURL: "https://cdn.discordapp.com/emojis/1234567890123456789.png",
+        });
+
+      await interaction.editReply({ embeds: [noHexEmbed] });
+      console.log(
+        `⚠️ OnlyHex Search Result: No Steam Hex found for '${identifier}'`
+      );
+      return;
+    }
+
+    // Build the hex list
+    let hexList = "";
+    for (let i = 0; i < hexData.length; i++) {
+      const data = hexData[i];
+      hexList += `**${i + 1}.** \`${data.hex}\`\n`;
+      hexList += `   - **Username:** \`${data.username}\`\n`;
+      hexList += `   - **Steam ID:** \`${data.steamId}\`\n`;
+      if (data.steamName !== "N/A") {
+        hexList += `   - **Steam Name:** \`${data.steamName}\`\n`;
+      }
+      if (data.steamUrl) {
+        hexList += `   - **Steam URL:** [Profile](${data.steamUrl})\n`;
+      }
+      hexList += `\n`;
+    }
+
+    const embed = new EmbedBuilder()
+      .setTitle("Steam Hex Search Result")
+      .setDescription("```diff\n+ Found\n```")
+      .setColor(0x00ff00)
+      .addFields({
+        name: `Unique Steam Hex Identifiers (${hexData.length})`,
+        value: hexList,
+        inline: false,
+      })
+      .setFooter({
+        text: "Developed by AghaDaNi",
+        iconURL: "https://cdn.discordapp.com/emojis/1234567890123456789.png",
+      });
+
+    await interaction.editReply({ embeds: [embed] });
+
+    console.log(
+      `✅ OnlyHex Search Result: Found ${hexData.length} unique Steam Hex(es) for identifier '${identifier}'`
+    );
+  } catch (error) {
+    console.log(
+      `⚠️ API failed for identifier '${interaction.options.getString(
+        "identifier"
+      )}' - User: ${interaction.user.username}`
+    );
+    console.error("Error details:", error.message);
+
+    const errorEmbed = new EmbedBuilder()
+      .setTitle("Steam Hex Search Result")
+      .setDescription("```diff\n- Error\n```")
+      .setColor(0xffaa00)
+      .addFields({
+        name: "Error Information",
+        value: `- **Status:** \`Connection Error\`\n- **Error:** \`Server did not respond\`\n- **Time:** <t:${Math.floor(
+          Date.now() / 1000
+        )}:R>\n- **Type:** \`Timeout Error\``,
         inline: false,
       })
       .setFooter({
