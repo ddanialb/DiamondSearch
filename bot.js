@@ -356,16 +356,27 @@ async function handleHexCommand(interaction) {
       response = await axios.get(
         `https://game-tools.ir/api/player-finder?query=${encodeURIComponent(
           identifier
-        )}&page=1&perPage=10`,
-        { timeout: 10000 }
+        )}&page=1&perPage=100`,
+        { timeout: 20000 }
       );
     } catch (firstError) {
       console.log(`🔄 Retrying API call for identifier '${identifier}'...`);
+      if (firstError.response) {
+        console.error(
+          `First attempt failed: HTTP ${firstError.response.status} - ${firstError.response.statusText}`
+        );
+      } else if (firstError.request) {
+        console.error(
+          `First attempt failed: Connection timeout or no response`
+        );
+      } else {
+        console.error(`First attempt failed: ${firstError.message}`);
+      }
       response = await axios.get(
         `https://game-tools.ir/api/player-finder?query=${encodeURIComponent(
           identifier
-        )}&page=1&perPage=10`,
-        { timeout: 15000 }
+        )}&page=1&perPage=100`,
+        { timeout: 25000 }
       );
     }
 
@@ -396,7 +407,7 @@ async function handleHexCommand(interaction) {
     // Create embeds for all accounts
     const embeds = [];
 
-    for (let i = 0; i < data.accounts.length && i < 10; i++) {
+    for (let i = 0; i < data.accounts.length; i++) {
       const account = data.accounts[i];
       let playerInfo = "";
 
@@ -500,21 +511,62 @@ async function handleHexCommand(interaction) {
     // Send first embed as edit
     await interaction.editReply({ embeds: [embeds[0]] });
 
-    // Send remaining embeds as follow-ups
+    // Send remaining embeds as follow-ups with delay to prevent rate limiting
     for (let i = 1; i < embeds.length; i++) {
       await interaction.followUp({ embeds: [embeds[i]] });
+      // Add small delay between messages to prevent rate limiting
+      if (i < embeds.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
     }
 
     console.log(
       `✅ Hex Search Result: Found ${data.count} account(s) for identifier '${identifier}'`
     );
   } catch (error) {
-    console.log(
-      `⚠️ API failed for identifier '${interaction.options.getString(
-        "identifier"
-      )}' - User: ${interaction.user.username}`
-    );
-    console.error("Error details:", error.message);
+    // Detailed error logging
+    let errorDetails = "Unknown error";
+    let errorType = "Unknown Error";
+    let statusCode = "N/A";
+
+    if (error.response) {
+      // Server responded with error status
+      statusCode = error.response.status;
+      errorType = `HTTP ${statusCode} Error`;
+      errorDetails =
+        error.response.data?.message ||
+        error.response.statusText ||
+        `Server returned ${statusCode}`;
+
+      console.log(
+        `⚠️ API failed for identifier '${interaction.options.getString(
+          "identifier"
+        )}' - User: ${interaction.user.username}`
+      );
+      console.error(`Error details: HTTP ${statusCode} - ${errorDetails}`);
+    } else if (error.request) {
+      // Request made but no response
+      errorType = "Connection Timeout";
+      errorDetails = "Server did not respond in time";
+
+      console.log(
+        `⚠️ API failed for identifier '${interaction.options.getString(
+          "identifier"
+        )}' - User: ${interaction.user.username}`
+      );
+      console.error("Error details: No response from server (timeout)");
+    } else {
+      // Error in request setup
+      errorType = "Request Error";
+      errorDetails = error.message || "Failed to create request";
+
+      console.log(
+        `⚠️ API failed for identifier '${interaction.options.getString(
+          "identifier"
+        )}' - User: ${interaction.user.username}`
+      );
+      console.error("Error details:", error.message);
+    }
 
     const errorEmbed = new EmbedBuilder()
       .setTitle("Identifier Search Result")
@@ -522,9 +574,9 @@ async function handleHexCommand(interaction) {
       .setColor(0xffaa00)
       .addFields({
         name: "Error Information",
-        value: `- **Status:** \`Connection Error\`\n- **Error:** \`Server did not respond\`\n- **Time:** <t:${Math.floor(
+        value: `- **Status Code:** \`${statusCode}\`\n- **Error Type:** \`${errorType}\`\n- **Details:** \`${errorDetails}\`\n- **Time:** <t:${Math.floor(
           Date.now() / 1000
-        )}:R>\n- **Type:** \`Timeout Error\``,
+        )}:R>`,
         inline: false,
       })
       .setFooter({
@@ -575,16 +627,27 @@ async function handleOnlyHexCommand(interaction) {
       response = await axios.get(
         `https://game-tools.ir/api/player-finder?query=${encodeURIComponent(
           identifier
-        )}&page=1&perPage=10`,
-        { timeout: 10000 }
+        )}&page=1&perPage=100`,
+        { timeout: 20000 }
       );
     } catch (firstError) {
       console.log(`🔄 Retrying API call for identifier '${identifier}'...`);
+      if (firstError.response) {
+        console.error(
+          `First attempt failed: HTTP ${firstError.response.status} - ${firstError.response.statusText}`
+        );
+      } else if (firstError.request) {
+        console.error(
+          `First attempt failed: Connection timeout or no response`
+        );
+      } else {
+        console.error(`First attempt failed: ${firstError.message}`);
+      }
       response = await axios.get(
         `https://game-tools.ir/api/player-finder?query=${encodeURIComponent(
           identifier
-        )}&page=1&perPage=10`,
-        { timeout: 15000 }
+        )}&page=1&perPage=100`,
+        { timeout: 25000 }
       );
     }
 
@@ -690,12 +753,49 @@ async function handleOnlyHexCommand(interaction) {
       `✅ OnlyHex Search Result: Found ${hexData.length} unique Steam Hex(es) for identifier '${identifier}'`
     );
   } catch (error) {
-    console.log(
-      `⚠️ API failed for identifier '${interaction.options.getString(
-        "identifier"
-      )}' - User: ${interaction.user.username}`
-    );
-    console.error("Error details:", error.message);
+    // Detailed error logging
+    let errorDetails = "Unknown error";
+    let errorType = "Unknown Error";
+    let statusCode = "N/A";
+
+    if (error.response) {
+      // Server responded with error status
+      statusCode = error.response.status;
+      errorType = `HTTP ${statusCode} Error`;
+      errorDetails =
+        error.response.data?.message ||
+        error.response.statusText ||
+        `Server returned ${statusCode}`;
+
+      console.log(
+        `⚠️ API failed for identifier '${interaction.options.getString(
+          "identifier"
+        )}' - User: ${interaction.user.username}`
+      );
+      console.error(`Error details: HTTP ${statusCode} - ${errorDetails}`);
+    } else if (error.request) {
+      // Request made but no response
+      errorType = "Connection Timeout";
+      errorDetails = "Server did not respond in time";
+
+      console.log(
+        `⚠️ API failed for identifier '${interaction.options.getString(
+          "identifier"
+        )}' - User: ${interaction.user.username}`
+      );
+      console.error("Error details: No response from server (timeout)");
+    } else {
+      // Error in request setup
+      errorType = "Request Error";
+      errorDetails = error.message || "Failed to create request";
+
+      console.log(
+        `⚠️ API failed for identifier '${interaction.options.getString(
+          "identifier"
+        )}' - User: ${interaction.user.username}`
+      );
+      console.error("Error details:", error.message);
+    }
 
     const errorEmbed = new EmbedBuilder()
       .setTitle("Steam Hex Search Result")
@@ -703,9 +803,9 @@ async function handleOnlyHexCommand(interaction) {
       .setColor(0xffaa00)
       .addFields({
         name: "Error Information",
-        value: `- **Status:** \`Connection Error\`\n- **Error:** \`Server did not respond\`\n- **Time:** <t:${Math.floor(
+        value: `- **Status Code:** \`${statusCode}\`\n- **Error Type:** \`${errorType}\`\n- **Details:** \`${errorDetails}\`\n- **Time:** <t:${Math.floor(
           Date.now() / 1000
-        )}:R>\n- **Type:** \`Timeout Error\``,
+        )}:R>`,
         inline: false,
       })
       .setFooter({
