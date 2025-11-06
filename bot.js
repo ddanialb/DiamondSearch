@@ -717,46 +717,97 @@ async function handleOnlyHexCommand(interaction) {
       return;
     }
 
-    // Build the hex list
-    let hexList = "";
+    // Build the hex list and split into multiple embeds if needed
+    const embeds = [];
+    let currentList = "";
+    let currentCount = 0;
+    const maxCharsPerEmbed = 900; // Keep under 1024 limit with some buffer
+
     for (let i = 0; i < hexData.length; i++) {
       const data = hexData[i];
-      hexList += `**${i + 1}.** \`${data.hex}\`\n`;
-      hexList += `   - **Username:** \`${data.username}\`\n`;
-      hexList += `   - **Steam ID:** \`${data.steamId}\`\n`;
+      let hexEntry = `**${i + 1}.** \`${data.hex}\`\n`;
+      hexEntry += `   - **Username:** \`${data.username}\`\n`;
+      hexEntry += `   - **Steam ID:** \`${data.steamId}\`\n`;
       if (data.steamName !== "N/A") {
-        hexList += `   - **Steam Name:** \`${data.steamName}\`\n`;
+        hexEntry += `   - **Steam Name:** \`${data.steamName}\`\n`;
       }
       if (data.steamUrl) {
-        hexList += `   - **Steam URL:** [Profile](${data.steamUrl})\n`;
+        hexEntry += `   - **Steam URL:** [Profile](${data.steamUrl})\n`;
       }
-      hexList += `\n`;
+      hexEntry += `\n`;
+
+      // Check if adding this entry would exceed the limit
+      if (currentList.length + hexEntry.length > maxCharsPerEmbed && currentList.length > 0) {
+        // Create embed with current list
+        const embed = new EmbedBuilder()
+          .setTitle(`Steam Hex Search Result (Part ${embeds.length + 1})`)
+          .setDescription("```diff\n+ Found\n```")
+          .setColor(0x00ff00)
+          .addFields({
+            name: `Unique Steam Hex Identifiers`,
+            value: currentList,
+            inline: false,
+          })
+          .setFooter({
+            text: "Developed by AghaDaNi",
+            iconURL: "https://cdn.discordapp.com/emojis/1234567890123456789.png",
+          });
+        embeds.push(embed);
+        currentList = "";
+        currentCount = 0;
+      }
+
+      currentList += hexEntry;
+      currentCount++;
     }
 
-    const embed = new EmbedBuilder()
-      .setTitle("Steam Hex Search Result")
-      .setDescription("```diff\n+ Found\n```")
-      .setColor(0x00ff00)
-      .addFields({
-        name: `Unique Steam Hex Identifiers (${hexData.length})`,
-        value: hexList,
-        inline: false,
-      })
-      .setFooter({
-        text: "Developed by AghaDaNi",
-        iconURL: "https://cdn.discordapp.com/emojis/1234567890123456789.png",
-      });
+    // Add remaining items
+    if (currentList.length > 0) {
+      const embed = new EmbedBuilder()
+        .setTitle(
+          embeds.length > 0
+            ? `Steam Hex Search Result (Part ${embeds.length + 1})`
+            : "Steam Hex Search Result"
+        )
+        .setDescription("```diff\n+ Found\n```")
+        .setColor(0x00ff00)
+        .addFields({
+          name: `Unique Steam Hex Identifiers (Total: ${hexData.length})`,
+          value: currentList,
+          inline: false,
+        })
+        .setFooter({
+          text: "Developed by AghaDaNi",
+          iconURL: "https://cdn.discordapp.com/emojis/1234567890123456789.png",
+        });
+      embeds.push(embed);
+    }
 
-    await interaction.editReply({ embeds: [embed] });
+    // Send first embed as edit
+    await interaction.editReply({ embeds: [embeds[0]] });
+
+    // Send remaining embeds as follow-ups with delay
+    for (let i = 1; i < embeds.length; i++) {
+      await interaction.followUp({ embeds: [embeds[i]] });
+      if (i < embeds.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    }
 
     console.log(
       `✅ OnlyHex Search Result: Found ${hexData.length} unique Steam Hex(es) for identifier '${identifier}'`
     );
   } catch (error) {
-    // Detailed error logging
+    // Detailed error logging for OnlyHex
     let errorDetails = "Unknown error";
     let errorType = "Unknown Error";
     let statusCode = "N/A";
+
+    console.log(
+      `⚠️ API failed for identifier '${interaction.options.getString(
+        "identifier"
+      )}' - User: ${interaction.user.username}`
+    );
 
     if (error.response) {
       // Server responded with error status
@@ -767,34 +818,24 @@ async function handleOnlyHexCommand(interaction) {
         error.response.statusText ||
         `Server returned ${statusCode}`;
 
-      console.log(
-        `⚠️ API failed for identifier '${interaction.options.getString(
-          "identifier"
-        )}' - User: ${interaction.user.username}`
-      );
       console.error(`Error details: HTTP ${statusCode} - ${errorDetails}`);
+      console.error("Response data:", JSON.stringify(error.response.data));
     } else if (error.request) {
       // Request made but no response
       errorType = "Connection Timeout";
       errorDetails = "Server did not respond in time";
 
-      console.log(
-        `⚠️ API failed for identifier '${interaction.options.getString(
-          "identifier"
-        )}' - User: ${interaction.user.username}`
-      );
       console.error("Error details: No response from server (timeout)");
     } else {
-      // Error in request setup
-      errorType = "Request Error";
-      errorDetails = error.message || "Failed to create request";
+      // Error in request setup or processing
+      errorType = "Processing Error";
+      errorDetails = error.message || "Failed to process request";
 
-      console.log(
-        `⚠️ API failed for identifier '${interaction.options.getString(
-          "identifier"
-        )}' - User: ${interaction.user.username}`
-      );
       console.error("Error details:", error.message);
+      console.error("Full error object:", error);
+      if (error.stack) {
+        console.error("Stack trace:", error.stack);
+      }
     }
 
     const errorEmbed = new EmbedBuilder()
