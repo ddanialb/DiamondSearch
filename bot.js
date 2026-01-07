@@ -2282,20 +2282,23 @@ client.on("interactionCreate", async (interaction) => {
         const end = start + perPage;
         const pagePlayers = players.slice(start, end);
         
-        let playerList = '';
+        let playerList = '```\n';
+        playerList += 'ID   │ Ping   │ Name\n';
+        playerList += '─────┼────────┼─────────────────────\n';
         for (const player of pagePlayers) {
-          const name = player.name || 'Unknown';
-          const id = player.id || 0;
-          const ping = player.ping || 0;
-          playerList += `**${name}** | \`${id}\` | \`${ping}ms\`\n`;
+          const name = (player.name || 'Unknown').substring(0, 20);
+          const id = String(player.id || 0).padStart(4, ' ');
+          const ping = String((player.ping || 0) + 'ms').padStart(6, ' ');
+          playerList += `${id} │ ${ping} │ ${name}\n`;
         }
+        playerList += '```';
         
         return new EmbedBuilder()
           .setTitle('Player List')
           .setDescription(`\`\`\`diff\n+ ${players.length} Players Online\n\`\`\``)
           .setColor(0x00ff00)
           .addFields({
-            name: `Name | ID | Ping`,
+            name: '📋 Online Players',
             value: playerList || 'Empty',
             inline: false
           })
