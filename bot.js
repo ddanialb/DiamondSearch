@@ -1825,15 +1825,15 @@ client.on("interactionCreate", async (interaction) => {
     console.log(`   Time: ${getIranTime().toLocaleString()}`);
     console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
     
-    await interaction.reply({ content: "🔍 Searching for player..." });
+    await interaction.deferReply();
     
     try {
       let response;
       try {
-        response = await axios.get(API_URL, { timeout: 10000 });
+        response = await axios.get(API_URL, { timeout: 15000 });
       } catch (firstError) {
         console.log(`🔄 Retrying API call for Player ID '${playerId}'...`);
-        response = await axios.get(API_URL, { timeout: 15000 });
+        response = await axios.get(API_URL, { timeout: 20000 });
       }
       
       const players = response.data;
@@ -1932,7 +1932,7 @@ client.on("interactionCreate", async (interaction) => {
     console.log(`   Time: ${getIranTime().toLocaleString()}`);
     console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
     
-    await interaction.reply({ content: "🔍 Searching for identifier..." });
+    await interaction.deferReply();
     
     try {
       let response;
@@ -2079,7 +2079,7 @@ client.on("interactionCreate", async (interaction) => {
     console.log(`   Time: ${getIranTime().toLocaleString()}`);
     console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
     
-    await interaction.reply({ content: "🔍 Searching for Steam Hex identifiers..." });
+    await interaction.deferReply();
     
     try {
       let response;
@@ -2377,14 +2377,20 @@ client.on("interactionCreate", async (interaction) => {
     }
   }
   } catch (err) {
-    console.error('Command error:', err);
+    console.error(`❌ Command Error [${interaction.commandName}]:`);
+    console.error(`   User: ${interaction.user?.username} (${interaction.user?.id})`);
+    console.error(`   Guild: ${interaction.guild?.name || 'DM'}`);
+    console.error(`   Error: ${err.message}`);
+    console.error(`   Stack: ${err.stack}`);
     try {
       if (interaction.replied || interaction.deferred) {
-        await interaction.followUp({ content: '❌ Error: ' + err.message, ephemeral: true });
+        await interaction.followUp({ content: '❌ خطایی رخ داد، لطفا دوباره تلاش کنید', ephemeral: true });
       } else {
-        await interaction.reply({ content: '❌ Error: ' + err.message, ephemeral: true });
+        await interaction.reply({ content: '❌ خطایی رخ داد، لطفا دوباره تلاش کنید', ephemeral: true });
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error(`   Failed to send error message: ${e.message}`);
+    }
   }
 });
 
@@ -2392,6 +2398,24 @@ client.on("error", (error) => {
   console.error("Discord Error:", error.message);
 });
 
+process.on('uncaughtException', (error) => {
+  console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.error('❌ Uncaught Exception:');
+  console.error(`   Message: ${error.message}`);
+  console.error(`   Stack: ${error.stack}`);
+  console.error(`   Time: ${getIranTime().toLocaleString()}`);
+  console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.error('❌ Unhandled Rejection:');
+  console.error(`   Reason: ${reason}`);
+  console.error(`   Time: ${getIranTime().toLocaleString()}`);
+  console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+});
+
 client.login(BOT_TOKEN).catch(err => {
   console.error("Login failed:", err.message);
 });
+ 
